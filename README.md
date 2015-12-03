@@ -27,6 +27,7 @@ Validate a single filing with additional options
 ```
 
 Using Altova RaptorXML+XBRL Server with XMLSpy client:
+
 1. do one of
     * Copy `eba_validation.py` to the Altova RaptorXML Server script directory `etc/scripts/` (default `C:\Program Files\Altova\RaptorXMLXBRLServer2016\etc\scripts\` on Windows)
     *   Edit the `<server.script-root-dir>` tag in the `etc/server_config.xml` Altova RaptorXML Server script directory
