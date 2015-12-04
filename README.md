@@ -1,6 +1,6 @@
 # eba-tools
 
-These scripts use the [Python v2.1 API](http://manual.altova.com/RaptorXML/pyapiv2/html/) of [RaptorXML+XBRL Server](http://www.altova.com/raptorxml.html).
+These scripts use the [Python v2.2 API](http://manual.altova.com/RaptorXML/pyapiv2/html/) of [RaptorXML+XBRL Server](http://www.altova.com/raptorxml.html).
 
 
 ##### eba_validation.py
