@@ -1,11 +1,11 @@
-﻿# Copyright 2015 Altova GmbH
-# 
+# Copyright 2015 Altova GmbH
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,7 +36,9 @@ __version__ = '4.1'
 # 2.    Start Altova RaptorXML+XBRL server
 # 3.    Start Altova XMLSpy, open Tools|Manage Raptor Servers... and connect to the running server
 # 4.    Create a new configuration and rename it to e.g. "EBA CHECKS"
-# 5.    Select the XBRL Instance property page and then set the script property to eba_validation.py
+# 5.    Select the XBRL Instance property page and then set:
+# 5.1.  the 'Script' property to 'eba_validation.py'
+# 5.2.  the 'Table Linkbase Namespace' property to 'http://xbrl.org/PWD/2013-05-17/table' or '##detect'
 # 6.    Select the new "EBA CHECKS" configuration in Tools|Raptor Servers and Configurations
 # 7.    Open a EBA instance file
 # 8.    Validate instance with XML|Validate XML on Server (Ctrl+F8)
@@ -65,13 +67,13 @@ def eba_1_4(instance,error_log):
 
 def eba_1_6(instance,error_log):
     """EBA 1.6 - Filing indicators"""
-    
+
     # Get all filing indicators which are present in the taxonomy
     available_indicators = set()
     for table in instance.dts.tables:
         for label in table.labels(label_role='http://www.eurofiling.info/xbrl/role/filing-indicator-code'):
             available_indicators.add(label.text)
-    
+
     used_indictors = {}
     indicator_facts = instance.facts.filter(xml.QName('filingIndicator','http://www.eurofiling.info/xbrl/ext/filing-indicators'))
     for indicator in indicator_facts:
@@ -79,7 +81,7 @@ def eba_1_6(instance,error_log):
             detail_error = xbrl.Error.create('The context referenced by the filing indicator elements MUST NOT contain xbrli:segment or xbrli:scenario elements.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.1.6] Filing indicators.', location=indicator, children=[detail_error])
             error_log.report(main_error)
-            
+
         if used_indictors.setdefault(indicator.normalized_value,indicator) != indicator:
             detail_error = xbrl.Error.create('Reported XBRL instances MUST contain only one filing indicator element for a given reporting unit("template").', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.1.6.1] Multiple filing indicators for the same reporting unit.', location=indicator, children=[detail_error])
@@ -88,15 +90,15 @@ def eba_1_6(instance,error_log):
         if indicator.normalized_value not in available_indicators:
             detail_error = xbrl.Error.create('The values of filing indicators MUST only be those given by the label resources with the role http://www.eurofiling.info/xbrl/role/filing-indicator-code applied to the relevant tables in the XBRL taxonomy4 for that reporting module (entry point). Filing indicator values must be formatted correctly (for example including any underscore characters).', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.1.6.3] Filing indicator codes.', location=indicator, children=[detail_error])
-            error_log.report(main_error)            
-        
+            error_log.report(main_error)
+
 def eba_1_13(instance,error_log):
     """EBA 1.13 - Standalone Document Declaration"""
     if instance.document.standalone is not None:
         detail_error = xbrl.Error.create('XBRL instance documents MUST use "UTF-8" encoding. [GFM11, p. 11]', severity=xml.ErrorSeverity.INFO)
         main_error = xbrl.Error.create('[EBA.1.13] Standalone Document Declaration.', location=instance.uri, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
         error_log.report(main_error)
-        
+
 def eba_1_14(instance,error_log):
     """EBA 1.14 - @xsd:schemaLocation and @xsd:noNamespaceSchemaLocation"""
     attr = instance.document_element.find_attribute(xml.QName('schemaLocation','http://www.w3.org/2001/XMLSchema-instance'))
@@ -106,7 +108,7 @@ def eba_1_14(instance,error_log):
         detail_error = xbrl.Error.create('@xsd:schemaLocation or @xsd:noNamespaceSchemaLocation MUST NOT be used.', severity=xml.ErrorSeverity.INFO)
         main_error = xbrl.Error.create('[EBA.1.14] @xsd:schemaLocation and @xsd:noNamespaceSchemaLocation.', location=attr, children=[detail_error])
         error_log.report(main_error)
-        
+
 def eba_1_15(instance,options,error_log):
     """EBA 1.15 — XInclude"""
     # --xinclude option switched off by default in RaptorXML+XBRL
@@ -117,7 +119,7 @@ def eba_1_15(instance,options,error_log):
         error_log.report(main_error)
 
 # Instance syntax rules
-        
+
 def eba_2_1(instance,error_log):
     """EBA 2.1 - The existence of xml:base is not permitted"""
     for elem in dfs(instance.document_element):
@@ -139,7 +141,7 @@ def eba_2_3(instance,error_log):
     for schema_ref in list(instance.schema_refs)[1:]:
         detail_error = xbrl.Error.create('Any reported XBRL instance document MUST contain only one xbrli:xbrl/link:schemaRef element.', severity=xml.ErrorSeverity.INFO)
         main_error = xbrl.Error.create('[EBA.2.3] Only one {schemaRef} element is allowed per instance document.', schemaRef=schema_ref, children=[detail_error])
-        error_log.report(main_error)        
+        error_log.report(main_error)
 
 def eba_2_4(instance,error_log):
     """EBA 2.4 - The use of link:linkbaseRef elements is not permitted"""
@@ -147,17 +149,17 @@ def eba_2_4(instance,error_log):
         detail_error = xbrl.Error.create('Reference from an instance to the taxonomy MUST only be by means of the link:schemaRef element. The element link:linkbaseRef MUST NOT be used in any instance document.', severity=xml.ErrorSeverity.INFO)
         main_error = xbrl.Error.create('[EBA.2.4] The use of {linkbaseRef} element is not permitted.', linkbaseRef=linkbase_ref, children=[detail_error])
         error_log.report(main_error)
-    
+
 def eba_2_25(instance,error_log):
     """EBA 2.25 - XBRL footnotes are ignored by EBA"""
     for link in instance.footnote_links:
         for footnote in link.resources:
             detail_error = xbrl.Error.create('Relevant business data MUST only be contained in contexts, units, schemaRef and facts. A footnote MUST not have any impact on the regulatory content of a report.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.25] XBRL {footnote} are ignored by EBA.', footnote=footnote, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
-            error_log.report(main_error)            
-    
-# Context related rules 
-    
+            error_log.report(main_error)
+
+# Context related rules
+
 def eba_2_6(instance,params,error_log):
     """EBA 2.6 - The length of the @id attribute should be limited to the necessary characters"""
     max_id_length = int(params.get('max-id-length',50))
@@ -167,7 +169,7 @@ def eba_2_6(instance,params,error_log):
             detail_error = xbrl.Error.create('Semantics SHOULD NOT be expressed in the xbrli:context/@id attribute. The values of each @id attribute SHOULD be as short as possible.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.6] The length of the {id} attribute should be limited to the necessary characters.', id=id_attr, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
             error_log.report(main_error)
-            
+
 def eba_2_7(instance,error_log):
     """EBA 2.7 - No unused or duplicated xbrli:context nodes"""
     aspects_map = {}
@@ -177,7 +179,7 @@ def eba_2_7(instance,error_log):
             detail_error = xbrl.Error.create('Unused xbrli:context nodes SHOULD NOT be present in the instance. [FRIS04]', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.7] No unused or duplicated {context} nodes.', context=context.element, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
             error_log.report(main_error)
-    
+
         # Check for duplicated contexts
         duplicates = aspects_map.setdefault(xbrl.ConstraintSet(context),[])
         if duplicates:
@@ -187,7 +189,7 @@ def eba_2_7(instance,error_log):
             error_log.report(main_error)
         else:
             duplicates.append(context)
-    
+
 def eba_2_9(instance,error_log):
     """EBA 2.9 - Single reporter per instance"""
     single_identifier = next(instance.contexts).entity_identifier_aspect_value
@@ -196,12 +198,12 @@ def eba_2_9(instance,error_log):
             detail_error = xbrl.Error.create('All xbrli:identifier content and @scheme attributes in an instance MUST be identical. [EFM13, p. 6-8]', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.9] Single reporter per instance.', location=context.entity.identifier, children=[detail_error])
             error_log.report(main_error)
-    
+
 def eba_2_10(instance,error_log):
     """EBA 2.10 - The xbrli:period date elements reported must be valid"""
     for context in instance.contexts:
         period = context.period
-        if period.instant and (period.instant.value.time() or period.instant.value.tzinfo):
+        if period.instant and (period.instant.value.tzinfo or period.instant.element.member_type_definition.name != "date"):
             detail_error = xbrl.Error.create('All xbrli:period date elements MUST be valid against the xs:date data type, and reported without a timezone. [GFM11, p. 16]', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.10] The {period} date elements reported must be valid.', period=context.period, children=[detail_error])
             error_log.report(main_error)
@@ -222,7 +224,7 @@ def eba_2_13(instance,error_log):
             detail_error = xbrl.Error.create('All xbrl periods in a report instance MUST refer to the (same) reference date instant. All xbrl periods MUST be instants.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.13] XBRL {period} consistency.', period=context.period, children=[detail_error])
             error_log.report(main_error)
-            
+
 def eba_2_14(instance,error_log):
     """EBA 2.14 - The existence of xbrli:segment is not permitted"""
     for context in instance.contexts:
@@ -230,7 +232,7 @@ def eba_2_14(instance,error_log):
             detail_error = xbrl.Error.create('xbrli:segment elements MUST NOT be used.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.14] The existence of {segment} is not permitted.', segment=context.entity.segment, children=[detail_error])
             error_log.report(main_error)
-            
+
 def eba_2_15(instance,error_log):
     """EBA 2.15 - Restrictions on the use of the xbrli:scenario element"""
     for context in instance.contexts:
@@ -245,7 +247,7 @@ def eba_2_16(instance,error_log):
     """EBA 2.16 - Duplicate (Redundant/Inconsistent) facts"""
     # Taking advantage of disallowed duplicate contexts and units. Otherwise one would need to hash by the aspect values.
     for aspect in instance.facts.concept_aspect_values():
-        if isinstance(aspect.concept,xbrl.taxonomy.Item):
+        if isinstance(aspect.concept,xbrl.taxonomy.Item) and (aspect.concept.target_namespace != "http://www.eurofiling.info/xbrl/ext/filing-indicators" or aspect.concept.name != "filingIndicator"):
             duplicate_facts = {}
             for fact in instance.facts.filter(aspect.concept):
                 key = (fact.context,fact.xml_lang)
@@ -268,7 +270,7 @@ def eba_2_17(instance,error_log):
             detail_error = xbrl.Error.create('@decimals MUST be used as the only means for expressing precision on a fact. [FRIS 2.8.1.1, EFM13, p.6-12].', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.2.17] The use of the {precision} attribute is not permitted.', precision=precision_attr, children=[detail_error])
             error_log.report(main_error)
-        
+
 def eba_2_19(instance,error_log):
     """EBA 2.19 - Guidance on use of zeros and non-reported data"""
     for fact in instance.child_items:
@@ -318,7 +320,7 @@ def eba_3_1(instance,error_log):
                 detail_error = xbrl.Error.create('For facts falling under point (b), whose context also includes the dimension “Currency with significant liabilities” (CUS), the currency of the fact (i.e. unit) MUST be consistent with the value given for this dimension.', severity=xml.ErrorSeverity.INFO)
                 main_error = xbrl.Error.create('[EBA.3.1] Choice of Currency for Monetary fact {fact}.', fact=fact, children=[detail_error])
                 error_log.report(main_error)
-            
+
     monetary_units = []
     for unit in instance.units:
         if unit.aspect_value.is_monetary():
@@ -382,7 +384,7 @@ def eba_3_5(instance,error_log):
 def eba_3_6(instance,error_log):
     """EBA 3.6 - LEI and other entity codes"""
     for context in instance.contexts:
-        if context.entity_identifier_aspect_value.scheme != 'http://standards.iso.org/iso/17442':
+        if context.entity_identifier_aspect_value.scheme == 'http://standard.iso.org/iso/17442':
             detail_error = xbrl.Error.create('Producers of instance documents are encouraged to switch as quickly as possible to producing the correct form “http://standards.iso.org/iso/17442”.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.3.6] LEI and other entity codes.', location=context.entity.identifier, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
             error_log.report(main_error)
@@ -404,13 +406,13 @@ def eba_3_7(instance,error_log):
             detail_error = xbrl.Error.create('The instance SHOULD NOT include unused @id attributes on facts.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.3.7] Unused {id} attribute on fact.', id=id_attr, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
             error_log.report(main_error)
-            
+
 def eba_3_8(instance,params,error_log):
     """EBA 3.8 - Length of strings in instance"""
     max_string_length = int(params.get('max-string-length',100))
     for fact in instance.child_items:
         val = fact.element.schema_actual_value
-        if isinstance(val,xsd.string) and len(val) > max_string_length:
+        if isinstance(val,xsd.string) and len(val.value) > max_string_length:
             detail_error = xbrl.Error.create('The values of each string SHOULD be as short as possible.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.3.8] Length of strings in instance.', location=fact, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
             error_log.report(main_error)
@@ -433,14 +435,14 @@ def eba_3_10(instance,error_log):
             detail_error = xbrl.Error.create('Namespaces used in the document SHOULD be associated to a single namespace prefix.', severity=xml.ErrorSeverity.INFO)
             main_error = xbrl.Error.create('[EBA.3.10] Avoid multiple prefix declarations {prefix} and {prefix2} for the same namespace {namespace}.', prefix=nsattr, prefix2=used_namespaces[nsattr.normalized_value], namespace=nsattr.normalized_value, children=[detail_error], severity=xml.ErrorSeverity.WARNING)
             error_log.report(main_error)
-            
+
 def check_eba_filing_rules(job, instance):
     """Check additional EBA filing rules"""
     catalog = job.catalog
-    params = job.script_params  
+    params = job.script_params
     error_log = job.error_log
 
-    # 1. Filing syntax rules    
+    # 1. Filing syntax rules
     # 1.1 - Filing naming
     # Needs to be implemented on a per authority basis!
     # 1.4 - Character encoding of XBRL instance documents
@@ -451,7 +453,7 @@ def check_eba_filing_rules(job, instance):
     eba_1_6(instance,error_log)
     # 1.7 - Implication of no facts for an indicated template
     # Cannot be checked automatically!
-    
+
     # 1.10 - Valid according to the defined business rules
     # TODO: Currently not possible to accesss the formula assertion results in the Python API
     # 1.11 - Taxonomy extensions by reporters
@@ -480,7 +482,7 @@ def check_eba_filing_rules(job, instance):
     eba_2_25(instance,error_log)
 
     # Context related rules
-    
+
     # 2.6 - The length of the @id attribute should be limited to the necessary characters
     eba_2_6(instance,params,error_log)
     # 2.7 - No unused or duplicated xbrli:context nodes
@@ -496,12 +498,12 @@ def check_eba_filing_rules(job, instance):
     # 2.13 - XBRL period consistency
     eba_2_13(instance,error_log)
     # 2.14 - The existence of xbrli:segment is not permitted
-    eba_2_14(instance,error_log)            
+    eba_2_14(instance,error_log)
     # 2.15 - Restrictions on the use of the xbrli:scenario element
     eba_2_15(instance,error_log)
-    
+
     # Fact related rules
-    
+
     # 2.16 - Duplicate (Redundant/Inconsistent) facts
     eba_2_16(instance,error_log)
     # 2.17 - The use of the @precision attribute is not permitted
@@ -512,9 +514,9 @@ def check_eba_filing_rules(job, instance):
     eba_2_19(instance,error_log)
     # 2.20 - Information on the use of the xml:lang attribute
     # Cannot be checked automatically!
-            
+
     # Unit related rules
-            
+
     # 2.21 - Duplicates of xbrli:xbrl/xbrli:unit
     eba_2_21(instance,error_log)
     # 2.22 - Unused xbrli:xbrl/xbrli:unit
@@ -530,8 +532,8 @@ def check_eba_filing_rules(job, instance):
     # 3.3 - Decimal representation
     # Cannot be checked automatically!
 
-    # 3. Additional Guidance    
-    
+    # 3. Additional Guidance
+
     # 3.4 Unused namespace prefixes
     eba_3_4(instance,error_log)
     # 3.5 Re-use of canonical namespace prefixes
@@ -546,7 +548,7 @@ def check_eba_filing_rules(job, instance):
     eba_3_9(instance,error_log)
     # 3.10 - Avoid multiple prefix declarations for the same namespace
     eba_3_10(instance,error_log)
-    
+
 def on_xbrl_finished_dts(job, dts):
     # EBA 2.23 - Reference xbrli:unit to XBRL International Unit Type Registry (UTR)
     job.options['utr'] = True   # Enable UTR validation
@@ -560,6 +562,6 @@ def on_xbrl_finished(job, instance):
         # EBA 1.9 - Valid XML-XBRL.
         xbrl_errors = [xbrl.Error.create('Instance documents MUST be XBRL 2.1 and XBRL Dimensions 1.0 valid. [EFM11, p. 6-8]', severity=xml.ErrorSeverity.INFO)]
         xbrl_errors.extend(list(job.error_log.errors))
-        main_error = xbrl.Error.create('[EBA.1.9] Valid XML-XBRL.', children=xbrl_errors)       
+        main_error = xbrl.Error.create('[EBA.1.9] Valid XML-XBRL.', children=xbrl_errors)
         job.error_log.clear()
         job.error_log.report(main_error)
